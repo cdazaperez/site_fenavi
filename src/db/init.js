@@ -70,10 +70,35 @@ export function initDatabase() {
       activo INTEGER NOT NULL DEFAULT 1
     );
 
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      nombre TEXT NOT NULL,
+      rol TEXT NOT NULL DEFAULT 'editor' CHECK(rol IN ('admin', 'editor')),
+      activo INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      last_login TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL,
+      accion TEXT NOT NULL,
+      tabla TEXT NOT NULL,
+      registro_id INTEGER,
+      datos_anteriores TEXT,
+      datos_nuevos TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_productos_subpartida ON productos(subpartida);
     CREATE INDEX IF NOT EXISTS idx_normatividad_tipo ON normatividad(tipo);
     CREATE INDEX IF NOT EXISTS idx_normatividad_fecha ON normatividad(fecha);
     CREATE INDEX IF NOT EXISTS idx_pasos_orden ON pasos_importacion(orden);
+    CREATE INDEX IF NOT EXISTS idx_audit_usuario ON audit_log(usuario_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_tabla ON audit_log(tabla);
   `);
 
   console.log('Database initialized successfully');

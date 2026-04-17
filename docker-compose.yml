@@ -1,0 +1,25 @@
+services:
+  web:
+    build: .
+    container_name: fenavi-importaciones
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - fenavi-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/data/importaciones.db
+      - JWT_SECRET=${JWT_SECRET:-cambiar-en-produccion-con-secreto-seguro}
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD:-Admin123!}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/pasos"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  fenavi-data:
+    driver: local

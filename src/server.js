@@ -9,6 +9,7 @@ import { dirname, join } from 'path';
 import { initDatabase } from './db/init.js';
 import { pageRoutes } from './routes/pages.js';
 import { apiRoutes } from './routes/api.js';
+import { adminRoutes } from './routes/admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,7 +41,7 @@ app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? ['https://importaciones.fenavi.org']
     : ['http://localhost:3000'],
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 }));
 
@@ -67,9 +68,20 @@ app.use(express.static(join(ROOT_DIR, 'public'), {
 // Initialize database
 const db = initDatabase();
 
+// Stricter rate limit for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos de login, intente más tarde.' },
+});
+app.use('/admin/login', authLimiter);
+
 // Routes
 app.use('/', pageRoutes);
 app.use('/api', apiRoutes(db));
+app.use('/admin', adminRoutes(db));
 
 // 404 handler
 app.use((req, res) => {

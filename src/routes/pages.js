@@ -27,4 +27,8 @@ router.get('/tlc', (_req, res) => {
   res.sendFile(join(VIEWS_DIR, 'tlc.html'));
 });
 
+router.get('/admin-panel', (_req, res) => {
+  res.sendFile(join(VIEWS_DIR, 'admin.html'));
+});
+
 export { router as pageRoutes };

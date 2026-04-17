@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { initDatabase } from './init.js';
 
 const db = initDatabase();
@@ -103,6 +104,16 @@ const insertTlcData = db.transaction((items) => {
 
 insertTlcData(tlcData);
 console.log(`Inserted ${tlcData.length} TLC info entries`);
+
+// Seed default admin user
+const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'Admin123!';
+const passwordHash = bcrypt.hashSync(defaultPassword, 12);
+const insertUser = db.prepare(`
+  INSERT OR IGNORE INTO usuarios (username, password_hash, nombre, rol)
+  VALUES (?, ?, ?, ?)
+`);
+insertUser.run('admin', passwordHash, 'Administrador', 'admin');
+console.log(`Default admin user created (username: admin, password: ${defaultPassword})`);
 
 db.close();
 console.log('Database seeded successfully');
