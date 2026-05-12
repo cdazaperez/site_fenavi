@@ -1,13 +1,5 @@
-import bcrypt from 'bcryptjs';
+import { fileURLToPath } from 'url';
 import { initDatabase } from './init.js';
-
-const db = initDatabase();
-
-// Seed productos (subpartidas arancelarias de pollo)
-const insertProducto = db.prepare(`
-  INSERT OR IGNORE INTO productos (subpartida, descripcion, arancel_base, arancel_tlc, iva, categoria_desgravacion, contingente, notas)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-`);
 
 const productos = [
   ['0207.11.00.00', 'Carne de gallo o gallina sin trocear, fresca o refrigerada', 164.4, 0, 5, 'F', 'Cuartos traseros', 'Contingente TLC con arancel 0%'],
@@ -22,21 +14,6 @@ const productos = [
   ['0408.11.00.00', 'Yemas de huevo, secas', 15, 0, 5, 'A', null, 'Desgravación inmediata'],
 ];
 
-const insertProductos = db.transaction((items) => {
-  for (const p of items) {
-    insertProducto.run(...p);
-  }
-});
-
-insertProductos(productos);
-console.log(`Inserted ${productos.length} productos`);
-
-// Seed normatividad
-const insertNorma = db.prepare(`
-  INSERT OR IGNORE INTO normatividad (tipo, numero, fecha, entidad, titulo, descripcion, url_documento)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-`);
-
 const normas = [
   ['decreto', '730', '2012-04-13', 'MinCIT', 'Implementación del TLC Colombia-EE.UU. para productos avícolas', 'Decreto que reglamenta la implementación del Acuerdo de Promoción Comercial entre Colombia y Estados Unidos en materia de productos avícolas.', null],
   ['decreto', '993', '2012-05-15', 'MinCIT', 'Entrada en vigencia del TLC Colombia-EE.UU.', 'Promulga el Acuerdo de Promoción Comercial entre la República de Colombia y los Estados Unidos de América.', null],
@@ -46,21 +23,6 @@ const normas = [
   ['ley', '1143', '2007-07-04', 'Congreso', 'Aprobación del TLC Colombia-EE.UU.', 'Aprueba el Acuerdo de Promoción Comercial entre la República de Colombia y los Estados Unidos de América, sus cartas adjuntas y sus entendimientos.', null],
   ['resolucion', '000072', '2020-10-15', 'DIAN', 'Adopción del Arancel de Aduanas', 'Actualización del arancel de aduanas aplicable a productos avícolas importados.', null],
 ];
-
-const insertNormas = db.transaction((items) => {
-  for (const n of items) {
-    insertNorma.run(...n);
-  }
-});
-
-insertNormas(normas);
-console.log(`Inserted ${normas.length} normas`);
-
-// Seed pasos de importación
-const insertPaso = db.prepare(`
-  INSERT OR IGNORE INTO pasos_importacion (orden, titulo, descripcion, entidad_responsable, documentos_requeridos, tiempo_estimado, icono)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-`);
 
 const pasos = [
   [1, 'Registro como importador ante la DIAN', 'Obtener el Registro Único Tributario (RUT) con la clasificación de actividad económica correspondiente a importación de productos avícolas.', 'DIAN', 'RUT actualizado, Cédula del representante legal, Cámara de Comercio', '5-10 días hábiles', 'clipboard-list'],
@@ -72,21 +34,6 @@ const pasos = [
   [7, 'Inspección y liberación', 'Inspección física y documental de la mercancía por parte del ICA e INVIMA en el punto de ingreso. Una vez aprobada, se autoriza la nacionalización.', 'ICA / INVIMA / DIAN', 'Todos los documentos anteriores, Manifiesto de carga', '1-3 días hábiles', 'check-circle'],
 ];
 
-const insertPasos = db.transaction((items) => {
-  for (const p of items) {
-    insertPaso.run(...p);
-  }
-});
-
-insertPasos(pasos);
-console.log(`Inserted ${pasos.length} pasos`);
-
-// Seed TLC info
-const insertTlc = db.prepare(`
-  INSERT OR IGNORE INTO tlc_info (seccion, titulo, contenido, orden)
-  VALUES (?, ?, ?, ?)
-`);
-
 const tlcData = [
   ['general', 'Acuerdo de Promoción Comercial Colombia - EE.UU.', 'El Tratado de Libre Comercio (TLC) entre Colombia y Estados Unidos entró en vigencia el 15 de mayo de 2012 mediante el Decreto 993. Este acuerdo comercial establece las condiciones para el comercio bilateral de productos avícolas, incluyendo esquemas de desgravación arancelaria y contingentes.', 1],
   ['general', 'Impacto en el sector avícola', 'Para el sector avícola, el TLC significó acceso sin restricciones arancelarias a materias primas de origen estadounidense (maíz amarillo, fríjol soya, torta de soya). Simultáneamente, se desmontaron instrumentos de protección como el Sistema Andino de Franjas de Precios (SAFP) y la licencia previa de importación de productos avícolas.', 2],
@@ -96,24 +43,43 @@ const tlcData = [
   ['obligaciones', 'Requisitos sanitarios', 'Las importaciones deben cumplir con todos los requisitos sanitarios y fitosanitarios establecidos por las autoridades colombianas (ICA, INVIMA), independientemente de las preferencias arancelarias del TLC. El capítulo de medidas sanitarias y fitosanitarias del TLC establece mecanismos de cooperación y transparencia.', 6],
 ];
 
-const insertTlcData = db.transaction((items) => {
-  for (const t of items) {
-    insertTlc.run(...t);
-  }
-});
+export function seedIfEmpty(db) {
+  const { count } = db.prepare('SELECT COUNT(*) as count FROM productos').get();
+  if (count > 0) return;
 
-insertTlcData(tlcData);
-console.log(`Inserted ${tlcData.length} TLC info entries`);
+  console.log('Seeding database with initial data...');
 
-// Seed default admin user
-const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'Admin123!';
-const passwordHash = bcrypt.hashSync(defaultPassword, 12);
-const insertUser = db.prepare(`
-  INSERT OR IGNORE INTO usuarios (username, password_hash, nombre, rol)
-  VALUES (?, ?, ?, ?)
-`);
-insertUser.run('admin', passwordHash, 'Administrador', 'admin');
-console.log(`Default admin user created (username: admin, password: ${defaultPassword})`);
+  const insertProducto = db.prepare('INSERT OR IGNORE INTO productos (subpartida, descripcion, arancel_base, arancel_tlc, iva, categoria_desgravacion, contingente, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  const insertNorma = db.prepare('INSERT OR IGNORE INTO normatividad (tipo, numero, fecha, entidad, titulo, descripcion, url_documento) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const insertPaso = db.prepare('INSERT OR IGNORE INTO pasos_importacion (orden, titulo, descripcion, entidad_responsable, documentos_requeridos, tiempo_estimado, icono) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const insertTlc = db.prepare('INSERT OR IGNORE INTO tlc_info (seccion, titulo, contenido, orden) VALUES (?, ?, ?, ?)');
+  const insertDoc = db.prepare('INSERT OR IGNORE INTO documentos (titulo, descripcion, categoria, nombre_archivo, url_archivo, tamano) VALUES (?, ?, ?, ?, ?, ?)');
 
-db.close();
-console.log('Database seeded successfully');
+  const documentos = [
+    ['Guía de Importación de Pollo - TLC Colombia-EE.UU.', 'Guía completa para la importación de pollo en el marco del TLC entre Colombia y Estados Unidos, incluyendo subpartidas arancelarias y requisitos.', 'guia', 'guia_importacion_pollo_FENAVI.pdf', '/docs/manuales/guia_importacion_pollo_FENAVI.pdf', '2.3 MB'],
+    ['Guía de Exportaciones e Importaciones ICA', 'Manual paso a paso del ICA para los trámites de exportación e importación de productos de origen animal.', 'manual', 'guia_de_Expo_Impo_ICA.pdf', '/docs/manuales/guia_de_Expo_Impo_ICA.pdf', '1.8 MB'],
+    ['Decreto 730 de 2012 - Implementación TLC', 'Texto completo del Decreto 730 de 2012 que reglamenta la implementación del TLC en materia de productos avícolas.', 'normativa', 'decreto_730_2012.pdf', '/docs/normativa/decreto_730_2012.pdf', '540 KB'],
+    ['Decreto 993 de 2012 - Entrada en vigencia TLC', 'Texto completo del Decreto 993 de 2012 que promulga el Acuerdo de Promoción Comercial Colombia-EE.UU.', 'normativa', 'decreto_993_2012.pdf', '/docs/normativa/decreto_993_2012.pdf', '1.2 MB'],
+    ['Formato de Solicitud de Contingente Arancelario', 'Formato oficial para solicitar la asignación de contingente arancelario ante el MinCIT.', 'formato', 'formato_contingente_mincit.pdf', '/docs/formatos/formato_contingente_mincit.pdf', '320 KB'],
+    ['Resolución ICA 3283 de 2008', 'Requisitos sanitarios para la importación de aves, productos y subproductos avícolas al territorio colombiano.', 'normativa', 'resolucion_ica_3283_2008.pdf', '/docs/normativa/resolucion_ica_3283_2008.pdf', '890 KB'],
+  ];
+
+  const seedAll = db.transaction(() => {
+    for (const p of productos) insertProducto.run(...p);
+    for (const n of normas) insertNorma.run(...n);
+    for (const p of pasos) insertPaso.run(...p);
+    for (const t of tlcData) insertTlc.run(...t);
+    for (const d of documentos) insertDoc.run(...d);
+  });
+
+  seedAll();
+  console.log('Database seeded successfully');
+}
+
+// Run directly if called as a script
+const currentFile = fileURLToPath(import.meta.url);
+if (process.argv[1] === currentFile) {
+  const db = initDatabase();
+  seedIfEmpty(db);
+  db.close();
+}

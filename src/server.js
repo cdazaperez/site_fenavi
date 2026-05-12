@@ -7,6 +7,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { initDatabase } from './db/init.js';
+import { seedIfEmpty } from './db/seed.js';
 import { pageRoutes } from './routes/pages.js';
 import { apiRoutes } from './routes/api.js';
 import { adminRoutes } from './routes/admin.js';
@@ -65,8 +66,9 @@ app.use(express.static(join(ROOT_DIR, 'public'), {
   etag: true,
 }));
 
-// Initialize database
+// Initialize database and auto-seed if empty
 const db = initDatabase();
+seedIfEmpty(db);
 
 // Stricter rate limit for auth endpoints
 const authLimiter = rateLimit({

@@ -27,6 +27,10 @@ router.get('/tlc', (_req, res) => {
   res.sendFile(join(VIEWS_DIR, 'tlc.html'));
 });
 
+router.get('/documentos', (_req, res) => {
+  res.sendFile(join(VIEWS_DIR, 'documentos.html'));
+});
+
 router.get('/admin-panel', (_req, res) => {
   res.sendFile(join(VIEWS_DIR, 'admin.html'));
 });

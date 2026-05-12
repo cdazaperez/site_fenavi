@@ -133,6 +133,20 @@ export function apiRoutes(db) {
     }
   );
 
+  // GET /api/documentos - List documents
+  router.get('/documentos',
+    query('categoria').optional().isIn(['guia', 'manual', 'normativa', 'formato', 'general']),
+    (req, res) => {
+      const categoria = req.query.categoria || null;
+      if (categoria) {
+        const items = db.prepare('SELECT * FROM documentos WHERE activo = 1 AND categoria = ? ORDER BY created_at DESC').all(categoria);
+        return res.json({ data: items });
+      }
+      const items = db.prepare('SELECT * FROM documentos WHERE activo = 1 ORDER BY categoria, created_at DESC').all();
+      res.json({ data: items });
+    }
+  );
+
   // GET /api/calcular-tributos - Calculate import taxes
   router.get('/calcular-tributos',
     query('subpartida').notEmpty().isString().trim(),

@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Información sobre el TLC Colombia - EE.UU. y su impacto en importaciones avícolas - FENAVI">
+  <meta name="description" content="Documentos y manuales para importación de pollo - FENAVI Colombia">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="DENY">
-  <title>TLC Colombia - EE.UU. - Importaciones FENAVI</title>
+  <title>Documentos - Importaciones FENAVI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -38,18 +38,25 @@
   <section class="section">
     <div class="container">
       <div class="section-header">
-        <h1>TLC Colombia - Estados Unidos</h1>
-        <p>Toda la información sobre el Acuerdo de Promoción Comercial y su impacto en las importaciones de productos avícolas.</p>
+        <h1>Documentos y Manuales</h1>
+        <p>Descargue guías, manuales, normativa y formatos relacionados con la importación de productos avícolas.</p>
       </div>
 
-      <div class="alert alert--info">
-        <strong>Decreto 993 de 2012:</strong> El TLC entre Colombia y Estados Unidos entró en vigencia el 15 de mayo de 2012, estableciendo condiciones especiales para el comercio bilateral de productos avícolas.
+      <div class="search-bar">
+        <select class="search-input" id="filtro-categoria">
+          <option value="">Todas las categorías</option>
+          <option value="guia">Guías</option>
+          <option value="manual">Manuales</option>
+          <option value="normativa">Normativa</option>
+          <option value="formato">Formatos</option>
+          <option value="general">General</option>
+        </select>
       </div>
 
-      <div id="tlc-container">
+      <div id="docs-container">
         <div class="loading">
           <div class="spinner"></div>
-          <p>Cargando información del TLC...</p>
+          <p>Cargando documentos...</p>
         </div>
       </div>
     </div>
@@ -68,6 +75,7 @@
         <a href="/normatividad">Normatividad</a>
         <a href="/tributos">Tributos</a>
         <a href="/tlc">TLC Colombia - EE.UU.</a>
+        <a href="/documentos">Documentos</a>
       </div>
       <div>
         <h4>Enlaces</h4>
@@ -83,6 +91,6 @@
   </footer>
 
   <script src="/js/app.js"></script>
-  <script src="/js/tlc.js"></script>
+  <script src="/js/documentos.js"></script>
 </body>
 </html>

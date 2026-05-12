@@ -105,6 +105,7 @@ const Admin = {
             <li><a href="#" data-section="normatividad">Normatividad</a></li>
             <li><a href="#" data-section="pasos">Pasos Importación</a></li>
             <li><a href="#" data-section="tlc">TLC</a></li>
+            <li><a href="#" data-section="documentos">Documentos</a></li>
             ${this.user?.rol === 'admin' ? '<li><a href="#" data-section="usuarios">Usuarios</a></li>' : ''}
             ${this.user?.rol === 'admin' ? '<li><a href="#" data-section="audit">Auditoría</a></li>' : ''}
           </ul>
@@ -181,6 +182,7 @@ const Admin = {
         case 'normatividad': await this.renderCRUD(content, 'normatividad', 'Normatividad', this.normatividadColumns()); break;
         case 'pasos': await this.renderCRUD(content, 'pasos', 'Pasos de Importación', this.pasosColumns()); break;
         case 'tlc': await this.renderCRUD(content, 'tlc', 'Información TLC', this.tlcColumns()); break;
+        case 'documentos': await this.renderCRUD(content, 'documentos', 'Documentos', this.documentosColumns()); break;
         case 'usuarios': await this.renderUsuarios(content); break;
         case 'audit': await this.renderAudit(content); break;
       }
@@ -192,9 +194,9 @@ const Admin = {
   // ── Dashboard ──
 
   async renderDashboard(container) {
-    const [productos, normatividad, pasos, tlc] = await Promise.all([
+    const [productos, normatividad, pasos, tlc, documentos] = await Promise.all([
       this.api('/productos'), this.api('/normatividad'),
-      this.api('/pasos'), this.api('/tlc'),
+      this.api('/pasos'), this.api('/tlc'), this.api('/documentos'),
     ]);
 
     container.innerHTML = `
@@ -204,6 +206,7 @@ const Admin = {
         <div class="stat-card"><h3>Normas</h3><div class="stat-value">${normatividad.data.length}</div></div>
         <div class="stat-card"><h3>Pasos</h3><div class="stat-value">${pasos.data.length}</div></div>
         <div class="stat-card"><h3>Info TLC</h3><div class="stat-value">${tlc.data.length}</div></div>
+        <div class="stat-card"><h3>Documentos</h3><div class="stat-value">${documentos.data.length}</div></div>
       </div>
       <div class="card" style="padding:1.5rem">
         <h3 style="margin-bottom:1rem">Bienvenido al Panel de Administración</h3>
@@ -401,6 +404,18 @@ const Admin = {
       { key: 'titulo', label: 'Título', required: true },
       { key: 'contenido', label: 'Contenido', type: 'textarea', required: true },
       { key: 'orden', label: 'Orden', type: 'number', required: true },
+    ];
+  },
+
+  documentosColumns() {
+    return [
+      { key: 'titulo', label: 'Título', required: true },
+      { key: 'descripcion', label: 'Descripción', type: 'textarea' },
+      { key: 'categoria', label: 'Categoría', type: 'select', options: ['guia', 'manual', 'normativa', 'formato', 'general'],
+        render: (item) => `<span class="badge badge--${this.escapeHTML(item.categoria)}">${this.escapeHTML(item.categoria)}</span>` },
+      { key: 'nombre_archivo', label: 'Nombre Archivo', required: true },
+      { key: 'url_archivo', label: 'URL Archivo', required: true },
+      { key: 'tamano', label: 'Tamaño', default: '' },
     ];
   },
 

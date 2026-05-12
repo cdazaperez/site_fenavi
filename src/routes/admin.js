@@ -342,6 +342,76 @@ export function adminRoutes(db) {
     res.json({ message: 'Registro TLC eliminado' });
   });
 
+  // ──────────── DOCUMENTOS CRUD ────────────
+
+  router.get('/documentos', requireAuth, (req, res) => {
+    const items = db.prepare('SELECT * FROM documentos ORDER BY categoria, created_at DESC').all();
+    res.json({ data: items });
+  });
+
+  router.post('/documentos', requireAuth,
+    body('titulo').isString().trim().notEmpty(),
+    body('descripcion').optional().isString().trim(),
+    body('categoria').isIn(['guia', 'manual', 'normativa', 'formato', 'general']),
+    body('nombre_archivo').isString().trim().notEmpty(),
+    body('url_archivo').isString().trim().notEmpty(),
+    body('tamano').optional().isString().trim(),
+    (req, res) => {
+      if (!handleValidation(req, res)) return;
+
+      const { titulo, descripcion, categoria, nombre_archivo, url_archivo, tamano } = req.body;
+      const result = db.prepare(`
+        INSERT INTO documentos (titulo, descripcion, categoria, nombre_archivo, url_archivo, tamano)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(titulo, descripcion || null, categoria, nombre_archivo, url_archivo, tamano || null);
+
+      auditLog(db, req.user.id, 'crear', 'documentos', result.lastInsertRowid, null, req.body);
+      const created = db.prepare('SELECT * FROM documentos WHERE id = ?').get(result.lastInsertRowid);
+      res.status(201).json(created);
+    }
+  );
+
+  router.put('/documentos/:id', requireAuth,
+    param('id').isInt({ min: 1 }),
+    body('titulo').isString().trim().notEmpty(),
+    body('descripcion').optional({ values: 'null' }).isString().trim(),
+    body('categoria').isIn(['guia', 'manual', 'normativa', 'formato', 'general']),
+    body('nombre_archivo').isString().trim().notEmpty(),
+    body('url_archivo').isString().trim().notEmpty(),
+    body('tamano').optional({ values: 'null' }).isString().trim(),
+    body('activo').optional().isInt({ min: 0, max: 1 }),
+    (req, res) => {
+      if (!handleValidation(req, res)) return;
+
+      const id = parseInt(req.params.id, 10);
+      const existing = db.prepare('SELECT * FROM documentos WHERE id = ?').get(id);
+      if (!existing) return res.status(404).json({ error: 'Documento no encontrado' });
+
+      const { titulo, descripcion, categoria, nombre_archivo, url_archivo, tamano, activo } = req.body;
+      db.prepare(`
+        UPDATE documentos SET titulo=?, descripcion=?, categoria=?, nombre_archivo=?, url_archivo=?, tamano=?, activo=?
+        WHERE id=?
+      `).run(titulo, descripcion || null, categoria, nombre_archivo, url_archivo, tamano || null,
+        activo !== undefined ? activo : existing.activo, id);
+
+      auditLog(db, req.user.id, 'actualizar', 'documentos', id, existing, req.body);
+      const updated = db.prepare('SELECT * FROM documentos WHERE id = ?').get(id);
+      res.json(updated);
+    }
+  );
+
+  router.delete('/documentos/:id', requireAuth, requireAdmin, (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id) || id < 1) return res.status(400).json({ error: 'ID inválido' });
+
+    const existing = db.prepare('SELECT * FROM documentos WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({ error: 'Documento no encontrado' });
+
+    db.prepare('DELETE FROM documentos WHERE id = ?').run(id);
+    auditLog(db, req.user.id, 'eliminar', 'documentos', id, existing, null);
+    res.json({ message: 'Documento eliminado' });
+  });
+
   // ──────────── USUARIOS (admin only) ────────────
 
   router.get('/usuarios', requireAuth, requireAdmin, (req, res) => {

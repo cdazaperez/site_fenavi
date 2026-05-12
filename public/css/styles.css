@@ -2,19 +2,20 @@
 /* Using CSS custom properties, modern layout (grid/flexbox), no jQuery/Bootstrap dependency */
 
 :root {
-  --color-primary: #1a5632;
-  --color-primary-light: #238b4e;
-  --color-primary-dark: #0e3a20;
-  --color-secondary: #f59e0b;
-  --color-secondary-light: #fbbf24;
-  --color-accent: #dc2626;
-  --color-bg: #f8fafc;
+  /* FENAVI institutional colors - azul oscuro + bandera colombiana */
+  --color-primary: #002855;
+  --color-primary-light: #003d7a;
+  --color-primary-dark: #001a3a;
+  --color-secondary: #FCC200;
+  --color-secondary-light: #FFD740;
+  --color-accent: #CE1126;
+  --color-bg: #f5f7fa;
   --color-bg-alt: #ffffff;
   --color-text: #1e293b;
   --color-text-light: #64748b;
   --color-border: #e2e8f0;
   --color-success: #16a34a;
-  --color-info: #2563eb;
+  --color-info: #002855;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
@@ -526,6 +527,11 @@ select.search-input {
 .badge--circular { background: #fef3c7; color: #92400e; }
 .badge--ley { background: #d1fae5; color: #065f46; }
 .badge--otro { background: #e2e8f0; color: #475569; }
+.badge--guia { background: #dbeafe; color: #1e40af; }
+.badge--manual { background: #fce7f3; color: #9d174d; }
+.badge--normativa { background: #fef3c7; color: #92400e; }
+.badge--formato { background: #e0e7ff; color: #3730a3; }
+.badge--general { background: #e2e8f0; color: #475569; }
 
 /* Footer */
 .footer {

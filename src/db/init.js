@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import bcrypt from 'bcryptjs';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
@@ -70,6 +71,18 @@ export function initDatabase() {
       activo INTEGER NOT NULL DEFAULT 1
     );
 
+    CREATE TABLE IF NOT EXISTS documentos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      titulo TEXT NOT NULL,
+      descripcion TEXT,
+      categoria TEXT NOT NULL DEFAULT 'general' CHECK(categoria IN ('guia', 'manual', 'normativa', 'formato', 'general')),
+      nombre_archivo TEXT NOT NULL,
+      url_archivo TEXT NOT NULL,
+      tamano TEXT,
+      activo INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS usuarios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
@@ -100,6 +113,16 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_audit_usuario ON audit_log(usuario_id);
     CREATE INDEX IF NOT EXISTS idx_audit_tabla ON audit_log(tabla);
   `);
+
+  // Auto-create default admin user if none exists
+  const userCount = db.prepare('SELECT COUNT(*) as count FROM usuarios').get();
+  if (userCount.count === 0) {
+    const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'Admin123!';
+    const hash = bcrypt.hashSync(defaultPassword, 12);
+    db.prepare('INSERT INTO usuarios (username, password_hash, nombre, rol) VALUES (?, ?, ?, ?)')
+      .run('admin', hash, 'Administrador', 'admin');
+    console.log('Default admin user created (user: admin)');
+  }
 
   console.log('Database initialized successfully');
   return db;
