@@ -1,7 +1,43 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { extname, join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { body, param, validationResult } from 'express-validator';
 import { generateToken, requireAuth, requireAdmin } from '../middleware/auth.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const UPLOADS_DIR = join(__dirname, '..', '..', 'public', 'docs');
+
+if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const ALLOWED_TYPES = ['application/pdf', 'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    const ext = extname(file.originalname).toLowerCase();
+    cb(null, `${unique}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no permitido. Solo PDF, Word y Excel.'));
+    }
+  },
+});
 
 function handleValidation(req, res) {
   const errors = validationResult(req);
@@ -349,56 +385,86 @@ export function adminRoutes(db) {
     res.json({ data: items });
   });
 
-  router.post('/documentos', requireAuth,
-    body('titulo').isString().trim().notEmpty(),
-    body('descripcion').optional().isString().trim(),
-    body('categoria').isIn(['guia', 'manual', 'normativa', 'formato', 'general']),
-    body('nombre_archivo').isString().trim().notEmpty(),
-    body('url_archivo').isString().trim().notEmpty(),
-    body('tamano').optional().isString().trim(),
-    (req, res) => {
-      if (!handleValidation(req, res)) return;
+  router.post('/documentos', requireAuth, (req, res) => {
+    upload.single('archivo')(req, res, (err) => {
+      if (err) {
+        const msg = err instanceof multer.MulterError
+          ? (err.code === 'LIMIT_FILE_SIZE' ? 'El archivo excede 20 MB' : err.message)
+          : err.message;
+        return res.status(400).json({ error: msg });
+      }
 
-      const { titulo, descripcion, categoria, nombre_archivo, url_archivo, tamano } = req.body;
+      const { titulo, descripcion, categoria } = req.body;
+      if (!titulo || !titulo.trim()) return res.status(400).json({ error: 'Título es requerido' });
+      if (!categoria || !['guia', 'manual', 'normativa', 'formato', 'general'].includes(categoria)) {
+        return res.status(400).json({ error: 'Categoría inválida' });
+      }
+      if (!req.file) return res.status(400).json({ error: 'Debe adjuntar un archivo' });
+
+      const nombre_archivo = req.file.originalname;
+      const url_archivo = `/docs/${req.file.filename}`;
+      const bytes = req.file.size;
+      const tamano = bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
+
       const result = db.prepare(`
         INSERT INTO documentos (titulo, descripcion, categoria, nombre_archivo, url_archivo, tamano)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run(titulo, descripcion || null, categoria, nombre_archivo, url_archivo, tamano || null);
+      `).run(titulo.trim(), (descripcion || '').trim() || null, categoria, nombre_archivo, url_archivo, tamano);
 
-      auditLog(db, req.user.id, 'crear', 'documentos', result.lastInsertRowid, null, req.body);
+      auditLog(db, req.user.id, 'crear', 'documentos', result.lastInsertRowid, null, { titulo, categoria, nombre_archivo });
       const created = db.prepare('SELECT * FROM documentos WHERE id = ?').get(result.lastInsertRowid);
       res.status(201).json(created);
-    }
-  );
+    });
+  });
 
-  router.put('/documentos/:id', requireAuth,
-    param('id').isInt({ min: 1 }),
-    body('titulo').isString().trim().notEmpty(),
-    body('descripcion').optional({ values: 'null' }).isString().trim(),
-    body('categoria').isIn(['guia', 'manual', 'normativa', 'formato', 'general']),
-    body('nombre_archivo').isString().trim().notEmpty(),
-    body('url_archivo').isString().trim().notEmpty(),
-    body('tamano').optional({ values: 'null' }).isString().trim(),
-    body('activo').optional().isInt({ min: 0, max: 1 }),
-    (req, res) => {
-      if (!handleValidation(req, res)) return;
+  router.put('/documentos/:id', requireAuth, (req, res) => {
+    upload.single('archivo')(req, res, (err) => {
+      if (err) {
+        const msg = err instanceof multer.MulterError
+          ? (err.code === 'LIMIT_FILE_SIZE' ? 'El archivo excede 20 MB' : err.message)
+          : err.message;
+        return res.status(400).json({ error: msg });
+      }
 
       const id = parseInt(req.params.id, 10);
+      if (isNaN(id) || id < 1) return res.status(400).json({ error: 'ID inválido' });
+
       const existing = db.prepare('SELECT * FROM documentos WHERE id = ?').get(id);
       if (!existing) return res.status(404).json({ error: 'Documento no encontrado' });
 
-      const { titulo, descripcion, categoria, nombre_archivo, url_archivo, tamano, activo } = req.body;
+      const { titulo, descripcion, categoria, activo } = req.body;
+      if (!titulo || !titulo.trim()) return res.status(400).json({ error: 'Título es requerido' });
+      if (!categoria || !['guia', 'manual', 'normativa', 'formato', 'general'].includes(categoria)) {
+        return res.status(400).json({ error: 'Categoría inválida' });
+      }
+
+      let nombre_archivo = existing.nombre_archivo;
+      let url_archivo = existing.url_archivo;
+      let tamano = existing.tamano;
+
+      if (req.file) {
+        nombre_archivo = req.file.originalname;
+        url_archivo = `/docs/${req.file.filename}`;
+        const bytes = req.file.size;
+        tamano = bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
+
+        if (existing.url_archivo && existing.url_archivo.startsWith('/docs/')) {
+          const oldPath = join(UPLOADS_DIR, existing.url_archivo.replace('/docs/', ''));
+          try { unlinkSync(oldPath); } catch (_) {}
+        }
+      }
+
       db.prepare(`
         UPDATE documentos SET titulo=?, descripcion=?, categoria=?, nombre_archivo=?, url_archivo=?, tamano=?, activo=?
         WHERE id=?
-      `).run(titulo, descripcion || null, categoria, nombre_archivo, url_archivo, tamano || null,
-        activo !== undefined ? activo : existing.activo, id);
+      `).run(titulo.trim(), (descripcion || '').trim() || null, categoria, nombre_archivo, url_archivo, tamano,
+        activo !== undefined ? parseInt(activo, 10) : existing.activo, id);
 
-      auditLog(db, req.user.id, 'actualizar', 'documentos', id, existing, req.body);
+      auditLog(db, req.user.id, 'actualizar', 'documentos', id, existing, { titulo, categoria, nombre_archivo });
       const updated = db.prepare('SELECT * FROM documentos WHERE id = ?').get(id);
       res.json(updated);
-    }
-  );
+    });
+  });
 
   router.delete('/documentos/:id', requireAuth, requireAdmin, (req, res) => {
     const id = parseInt(req.params.id, 10);
@@ -406,6 +472,11 @@ export function adminRoutes(db) {
 
     const existing = db.prepare('SELECT * FROM documentos WHERE id = ?').get(id);
     if (!existing) return res.status(404).json({ error: 'Documento no encontrado' });
+
+    if (existing.url_archivo && existing.url_archivo.startsWith('/docs/')) {
+      const filePath = join(UPLOADS_DIR, existing.url_archivo.replace('/docs/', ''));
+      try { unlinkSync(filePath); } catch (_) {}
+    }
 
     db.prepare('DELETE FROM documentos WHERE id = ?').run(id);
     auditLog(db, req.user.id, 'eliminar', 'documentos', id, existing, null);

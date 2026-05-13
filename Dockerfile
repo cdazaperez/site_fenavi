@@ -13,7 +13,7 @@ COPY src/ ./src/
 COPY public/ ./public/
 COPY views/ ./views/
 
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data /app/public/docs
 
 ENV NODE_ENV=production
 ENV PORT=3000

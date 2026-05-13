@@ -31,6 +31,23 @@ const Admin = {
     return res.json();
   },
 
+  async apiUpload(path, formData, method = 'POST') {
+    const headers = {};
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+
+    const res = await fetch(`/admin${path}`, { method, headers, body: formData });
+
+    if (res.status === 401) {
+      this.logout();
+      throw new Error('Sesión expirada');
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Error ${res.status}`);
+    }
+    return res.json();
+  },
+
   // ── Auth ──
 
   async login(username, password) {
@@ -257,9 +274,11 @@ const Admin = {
       tbody.appendChild(row);
     }
 
-    document.getElementById('btn-create').addEventListener('click', () => {
-      this.openFormModal(resource, title, columns, null);
-    });
+    const openForm = resource === 'documentos'
+      ? (item) => this.openDocFormModal(item)
+      : (item) => this.openFormModal(resource, title, columns, item);
+
+    document.getElementById('btn-create').addEventListener('click', () => openForm(null));
 
     tbody.addEventListener('click', async (e) => {
       const btn = e.target.closest('button');
@@ -268,7 +287,7 @@ const Admin = {
       const item = data.find(d => d.id === id);
 
       if (btn.classList.contains('btn-edit')) {
-        this.openFormModal(resource, title, columns, item);
+        openForm(item);
       } else if (btn.classList.contains('btn-toggle')) {
         await this.toggleActive(resource, item, columns);
       } else if (btn.classList.contains('btn-delete')) {
@@ -413,10 +432,93 @@ const Admin = {
       { key: 'descripcion', label: 'Descripción', type: 'textarea' },
       { key: 'categoria', label: 'Categoría', type: 'select', options: ['guia', 'manual', 'normativa', 'formato', 'general'],
         render: (item) => `<span class="badge badge--${this.escapeHTML(item.categoria)}">${this.escapeHTML(item.categoria)}</span>` },
-      { key: 'nombre_archivo', label: 'Nombre Archivo', required: true },
-      { key: 'url_archivo', label: 'URL Archivo', required: true },
-      { key: 'tamano', label: 'Tamaño', default: '' },
+      { key: 'nombre_archivo', label: 'Archivo', editable: false,
+        render: (item) => item.url_archivo && item.url_archivo.startsWith('/docs/')
+          ? `<a href="${this.escapeHTML(item.url_archivo)}" target="_blank" rel="noopener">${this.escapeHTML(item.nombre_archivo)}</a>`
+          : this.escapeHTML(item.nombre_archivo || '') },
+      { key: 'tamano', label: 'Tamaño', editable: false },
     ];
+  },
+
+  // ── Document Upload Modal ──
+
+  openDocFormModal(item) {
+    const isEdit = !!item;
+    document.getElementById('modal-title').textContent = isEdit ? 'Editar Documento' : 'Nuevo Documento';
+
+    const cats = ['guia', 'manual', 'normativa', 'formato', 'general'];
+    const catOptions = cats.map(c =>
+      `<option value="${c}" ${item && item.categoria === c ? 'selected' : ''}>${c}</option>`
+    ).join('');
+
+    document.getElementById('modal-body').innerHTML = `
+      <form id="crud-form" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="field-titulo">Título</label>
+          <input type="text" id="field-titulo" value="${this.escapeHTML(item?.titulo || '')}" required>
+        </div>
+        <div class="form-group">
+          <label for="field-descripcion">Descripción</label>
+          <textarea id="field-descripcion" rows="3" style="width:100%;padding:0.625rem;border:2px solid var(--color-border);border-radius:var(--radius-md);font-family:inherit;resize:vertical">${this.escapeHTML(item?.descripcion || '')}</textarea>
+        </div>
+        <div class="form-group">
+          <label for="field-categoria">Categoría</label>
+          <select id="field-categoria">${catOptions}</select>
+        </div>
+        <div class="form-group">
+          <label for="field-archivo">Archivo (PDF, Word, Excel — máx. 20 MB)</label>
+          <input type="file" id="field-archivo" accept=".pdf,.doc,.docx,.xls,.xlsx" ${isEdit ? '' : 'required'}
+            style="padding:0.5rem;border:2px dashed var(--color-border);border-radius:var(--radius-md);width:100%;cursor:pointer">
+          ${isEdit && item.nombre_archivo ? `<small style="color:var(--color-text-light);margin-top:0.25rem;display:block">Actual: ${this.escapeHTML(item.nombre_archivo)} (${this.escapeHTML(item.tamano || '')}). Deje vacío para conservar.</small>` : ''}
+        </div>
+        <div id="form-error"></div>
+      </form>`;
+
+    document.getElementById('modal-footer').innerHTML = `
+      <button class="btn btn-outline btn-sm" id="modal-cancel">Cancelar</button>
+      <button class="btn btn-primary btn-sm" id="modal-save">${isEdit ? 'Guardar' : 'Crear'}</button>`;
+
+    this.openModal();
+
+    document.getElementById('modal-cancel').addEventListener('click', () => this.closeModal());
+    document.getElementById('modal-save').addEventListener('click', async () => {
+      const titulo = document.getElementById('field-titulo').value.trim();
+      const descripcion = document.getElementById('field-descripcion').value.trim();
+      const categoria = document.getElementById('field-categoria').value;
+      const fileInput = document.getElementById('field-archivo');
+      const file = fileInput.files[0];
+
+      if (!titulo) {
+        document.getElementById('form-error').innerHTML =
+          '<div class="alert alert--error" style="margin-top:1rem">El título es requerido.</div>';
+        return;
+      }
+      if (!isEdit && !file) {
+        document.getElementById('form-error').innerHTML =
+          '<div class="alert alert--error" style="margin-top:1rem">Debe seleccionar un archivo.</div>';
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('titulo', titulo);
+      fd.append('descripcion', descripcion);
+      fd.append('categoria', categoria);
+      if (file) fd.append('archivo', file);
+      if (isEdit && item.activo !== undefined) fd.append('activo', item.activo);
+
+      try {
+        if (isEdit) {
+          await this.apiUpload(`/documentos/${item.id}`, fd, 'PUT');
+        } else {
+          await this.apiUpload('/documentos', fd, 'POST');
+        }
+        this.closeModal();
+        this.navigateTo(this.currentSection);
+      } catch (err) {
+        document.getElementById('form-error').innerHTML =
+          `<div class="alert alert--error" style="margin-top:1rem">${this.escapeHTML(err.message)}</div>`;
+      }
+    });
   },
 
   // ── Usuarios ──

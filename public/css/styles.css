@@ -2,20 +2,20 @@
 /* Using CSS custom properties, modern layout (grid/flexbox), no jQuery/Bootstrap dependency */
 
 :root {
-  /* FENAVI institutional colors - azul oscuro + bandera colombiana */
-  --color-primary: #002855;
-  --color-primary-light: #003d7a;
-  --color-primary-dark: #001a3a;
-  --color-secondary: #FCC200;
-  --color-secondary-light: #FFD740;
-  --color-accent: #CE1126;
+  /* FENAVI institutional colors - extracted from official logo */
+  --color-primary: #00205B;
+  --color-primary-light: #003380;
+  --color-primary-dark: #001440;
+  --color-secondary: #F7A800;
+  --color-secondary-light: #FFBE2E;
+  --color-accent: #E4002B;
   --color-bg: #f5f7fa;
   --color-bg-alt: #ffffff;
   --color-text: #1e293b;
   --color-text-light: #64748b;
   --color-border: #e2e8f0;
   --color-success: #16a34a;
-  --color-info: #002855;
+  --color-info: #00205B;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
@@ -99,10 +99,14 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.5rem); }
   font-size: 1.125rem;
 }
 
+.header-logo img,
 .header-logo svg {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 48px;
   flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.9);
+  padding: 2px;
 }
 
 .header-logo span {

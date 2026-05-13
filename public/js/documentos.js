@@ -40,8 +40,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
           <h4 style="margin-bottom:0.5rem;font-size:0.9375rem">${App.escapeHTML(doc.titulo)}</h4>
           ${doc.descripcion ? `<p style="font-size:0.8125rem;color:var(--color-text-light);margin-bottom:1rem">${App.escapeHTML(doc.descripcion)}</p>` : ''}
-          <a href="${App.escapeHTML(doc.url_archivo)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm" style="font-size:0.8125rem">
-            Descargar PDF
+          <a href="${App.escapeHTML(doc.url_archivo)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm" style="font-size:0.8125rem" download>
+            Descargar
           </a>`;
         grid.appendChild(card);
       }

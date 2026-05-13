@@ -7,6 +7,7 @@ services:
       - "${PORT:-3000}:3000"
     volumes:
       - fenavi-data:/app/data
+      - fenavi-docs:/app/public/docs
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -22,4 +23,6 @@ services:
 
 volumes:
   fenavi-data:
+    driver: local
+  fenavi-docs:
     driver: local

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" fill="none">
+  <!-- Yellow/orange arc -->
+  <path d="M100 20 C55 20 20 55 20 100 C20 125 30 148 47 163" stroke="#F7A800" stroke-width="18" stroke-linecap="round" fill="none"/>
+  <!-- Blue arc -->
+  <path d="M153 163 C170 148 180 125 180 100 C180 55 145 20 100 20" stroke="#00205B" stroke-width="18" stroke-linecap="round" fill="none"/>
+  <!-- Bird head - red -->
+  <path d="M100 30 C85 30 75 45 75 60 C75 75 85 85 100 85 C105 85 110 83 113 80 L125 70 L113 65 C115 55 110 30 100 30Z" fill="#E4002B"/>
+  <!-- Eye -->
+  <circle cx="95" cy="55" r="4" fill="white"/>
+  <circle cx="96" cy="54" r="2" fill="#00205B"/>
+  <!-- Beak -->
+  <path d="M113 65 L130 58 L113 80 Z" fill="#F7A800"/>
+  <!-- Text "fenavi" -->
+  <text x="100" y="205" text-anchor="middle" fill="#00205B" font-family="Arial,sans-serif" font-weight="bold" font-size="38" letter-spacing="2">fenavi</text>
+</svg>
