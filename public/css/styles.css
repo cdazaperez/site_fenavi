@@ -73,7 +73,7 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.5rem); }
 
 /* Header */
 .header {
-  background: var(--color-primary);
+  background: #00205B;
   color: white;
   position: sticky;
   top: 0;
@@ -156,7 +156,7 @@ h3 { font-size: clamp(1.25rem, 2.5vw, 1.5rem); }
 
 /* Hero */
 .hero {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  background: linear-gradient(135deg, #00205B 0%, #001a4d 100%);
   color: white;
   padding: 4rem 1.5rem;
   text-align: center;
@@ -329,7 +329,7 @@ table {
 }
 
 thead {
-  background: var(--color-primary);
+  background: #00205B;
   color: white;
 }
 
@@ -539,7 +539,7 @@ select.search-input {
 
 /* Footer */
 .footer {
-  background: var(--color-primary-dark);
+  background: #001a4d;
   color: rgba(255,255,255,0.8);
   padding: 2rem 1.5rem;
   margin-top: auto;
@@ -630,7 +630,7 @@ select.search-input {
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--color-primary-dark);
+    background: #001a4d;
     flex-direction: column;
     padding: 0.5rem;
     box-shadow: var(--shadow-lg);

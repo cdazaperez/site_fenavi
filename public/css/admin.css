@@ -11,7 +11,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100dvh;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  background: linear-gradient(135deg, #00205B 0%, #001a4d 100%);
 }
 
 .login-card {
@@ -38,7 +38,7 @@
 
 /* Sidebar */
 .sidebar {
-  background: var(--color-primary);
+  background: #00205B;
   color: white;
   padding: 1.5rem 0;
   display: flex;

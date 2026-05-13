@@ -62,7 +62,7 @@ app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
 // Static files with cache control
 app.use(express.static(join(ROOT_DIR, 'public'), {
-  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+  maxAge: 0,
   etag: true,
 }));
 
